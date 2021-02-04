@@ -16,33 +16,35 @@
 
 package org.springframework.cloud.vault.config.aws;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.cloud.vault.config.LeasingSecretBackendMetadata;
 import org.springframework.cloud.vault.config.PropertyNameTransformer;
 import org.springframework.cloud.vault.config.SecretBackendMetadata;
 import org.springframework.cloud.vault.config.SecretBackendMetadataFactory;
 import org.springframework.cloud.vault.config.VaultSecretBackendDescriptor;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.util.Assert;
-import org.springframework.vault.core.util.PropertyTransformer;
 
 /**
- * Bootstrap configuration providing support for the AWS secret backend.
+ * Bootstrap configuration providing support for the AWS secret backend and STS
+ * assumed_role.
  *
- * @author Mark Paluch
+ * @author Kris Iyer
  */
 @Configuration(proxyBeanMethods = false)
 @EnableConfigurationProperties(VaultAwsProperties.class)
-public class VaultConfigAwsBootstrapConfiguration {
+@ConditionalOnProperty(name = "spring.cloud.vault.aws.credentialType", havingValue = "assumed_role_test")
+public class VaultConfigAwsSTSAssumedRoleBootstrapConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
-	public AwsSecretBackendMetadataFactory awsSecretBackendMetadataFactory() {
-		return new AwsSecretBackendMetadataFactory();
+	public AwsSecretBackendMetadataFactory awsSecretBackendMetadataFactory(ApplicationContext context) {
+		return new AwsSecretBackendMetadataFactory(context);
 	}
 
 	/**
@@ -50,6 +52,21 @@ public class VaultConfigAwsBootstrapConfiguration {
 	 * {@link VaultAwsProperties}.
 	 */
 	public static class AwsSecretBackendMetadataFactory implements SecretBackendMetadataFactory<VaultAwsProperties> {
+
+		private final ApplicationEventPublisher publisher;
+
+		public AwsSecretBackendMetadataFactory() {
+			this.publisher = event -> {
+			}; // NO-OP;
+		}
+
+		public AwsSecretBackendMetadataFactory(ApplicationContext publisher) {
+			this.publisher = publisher;
+		}
+
+		public ApplicationEventPublisher getPublisher() {
+			return this.publisher;
+		}
 
 		/**
 		 * Creates {@link SecretBackendMetadata} for a secret backend using
@@ -60,42 +77,18 @@ public class VaultConfigAwsBootstrapConfiguration {
 		 * @param properties must not be {@literal null}.
 		 * @return the {@link SecretBackendMetadata}
 		 */
-		static SecretBackendMetadata forAws(final VaultAwsProperties properties) {
+		LeasingSecretBackendMetadata forAws(final VaultAwsProperties properties) {
 
 			Assert.notNull(properties, "VaultAwsProperties must not be null");
+			Assert.isTrue(properties.getCredentialType().equalsIgnoreCase(AWSCredentialType.assumed_role.name()),
+					"VaultAwsProperties credentialType should be set to assumed_role");
 
 			PropertyNameTransformer transformer = new PropertyNameTransformer();
 			transformer.addKeyTransformation("access_key", properties.getAccessKeyProperty());
 			transformer.addKeyTransformation("secret_key", properties.getSecretKeyProperty());
+			transformer.addKeyTransformation("security_token", properties.getSessionTokenKeyProperty());
 
-			return new SecretBackendMetadata() {
-
-				@Override
-				public String getName() {
-					return String.format("%s with Role %s", properties.getBackend(), properties.getRole());
-				}
-
-				@Override
-				public String getPath() {
-					return String.format("%s/creds/%s", properties.getBackend(), properties.getRole());
-				}
-
-				@Override
-				public PropertyTransformer getPropertyTransformer() {
-					return transformer;
-				}
-
-				@Override
-				public Map<String, String> getVariables() {
-
-					Map<String, String> variables = new HashMap<>();
-
-					variables.put("backend", properties.getBackend());
-					variables.put("key", String.format("creds/%s", properties.getRole()));
-
-					return variables;
-				}
-			};
+			return new AwsBackendSTSAssumedRoleMetadata(properties, transformer, this.publisher);
 		}
 
 		@Override
