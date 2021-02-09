@@ -24,6 +24,7 @@ import org.springframework.lang.Nullable;
  * Configuration properties for Vault using the AWS integration.
  *
  * @author Mark Paluch
+ * @author Kris Iyer
  */
 @ConfigurationProperties("spring.cloud.vault.aws")
 public class VaultAwsProperties implements VaultSecretBackendDescriptor {
@@ -45,6 +46,11 @@ public class VaultAwsProperties implements VaultSecretBackendDescriptor {
 	private String backend = "aws";
 
 	/**
+	 * aws credential type
+	 */
+	private AwsCredentialType credentialType = AwsCredentialType.iam_user;
+
+	/**
 	 * Target property for the obtained access key.
 	 */
 	private String accessKeyProperty = "cloud.aws.credentials.accessKey";
@@ -53,6 +59,11 @@ public class VaultAwsProperties implements VaultSecretBackendDescriptor {
 	 * Target property for the obtained secret key.
 	 */
 	private String secretKeyProperty = "cloud.aws.credentials.secretKey";
+
+	/**
+	 * Target property for the obtained secret key.
+	 */
+	private String sessionTokenKeyProperty = "cloud.aws.credentials.sessionToken";
 
 	@Override
 	public boolean isEnabled() {
@@ -95,6 +106,22 @@ public class VaultAwsProperties implements VaultSecretBackendDescriptor {
 
 	public void setSecretKeyProperty(String secretKeyProperty) {
 		this.secretKeyProperty = secretKeyProperty;
+	}
+
+	public AwsCredentialType getCredentialType() {
+		return credentialType;
+	}
+
+	public void setCredentialType(AwsCredentialType credentialType) {
+		this.credentialType = credentialType;
+	}
+
+	public String getSessionTokenKeyProperty() {
+		return sessionTokenKeyProperty;
+	}
+
+	public void setSessionTokenKeyProperty(String sessionTokenKeyProperty) {
+		this.sessionTokenKeyProperty = sessionTokenKeyProperty;
 	}
 
 }
