@@ -61,7 +61,7 @@ public class VaultConfigAwsBootstrapConfiguration {
 
 	@Bean
 	@ConditionalOnProperty(name = "spring.cloud.vault.aws.credential-type", havingValue = "federation_token")
-	public AwsStsSecretBackendMetadataFactory awsStsFederrationTokenSecretBackendMetadataFactory(
+	public AwsStsSecretBackendMetadataFactory awsStsFederationTokenSecretBackendMetadataFactory(
 			ApplicationContext context) {
 		return new AwsStsSecretBackendMetadataFactory();
 	}
@@ -132,19 +132,19 @@ public class VaultConfigAwsBootstrapConfiguration {
 	}
 
 	/**
-	 * {@link SecretBackendMetadataFactory} for AWS integration using with STS Assumed
-	 * Role {@link VaultAwsProperties}.
+	 * {@link LeasingSecretBackendMetadata} for AWS integration using with STS Role
+	 * {@link VaultAwsProperties}.
 	 */
 	public static class AwsStsSecretBackendMetadataFactory implements SecretBackendMetadataFactory<VaultAwsProperties> {
 
 		/**
-		 * Creates {@link SecretBackendMetadata} for a secret backend using
-		 * {@link VaultAwsProperties}. This accessor transforms Vault's username/password
-		 * property names to names provided with
+		 * Creates {@link LeasingSecretBackendMetadata} for a secret backend for AWS STS
+		 * using {@link VaultAwsProperties}. This accessor transforms Vault's
+		 * username/password property names to names provided with
 		 * {@link VaultAwsProperties#getAccessKeyProperty()} and
 		 * {@link VaultAwsProperties#getSecretKeyProperty()}.
 		 * @param properties must not be {@literal null}.
-		 * @return the {@link SecretBackendMetadata}
+		 * @return the {@link LeasingSecretBackendMetadata}
 		 */
 		static LeasingSecretBackendMetadata forAws(final VaultAwsProperties properties) {
 
